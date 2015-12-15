@@ -1,0 +1,65 @@
+{
+	"variables" : {
+		"group_code" 		: "A01",
+		"name" 				: "TEAMCITY",
+		"instance_type" 	: "m1.small",
+		"spot_price"		: "0.021",
+		"source_ami" 		: "ami-8e345aee",
+		"user" 				: "Administrator",
+		"password" 			: "N0tsosecret",
+		"region"			: "us-west-1",
+		"subnet_id" 		: "subnet-aaaabbbb",
+		"security_group_id" : "sg-aaaabbbb",
+		"tag_project"		: "build-automation",
+		"tag_ami_type"		: "base",
+		"build_no"			: "0.0.0.0"
+	},
+	
+  	"builders": [
+		{
+			"type"				: "amazon-ebs",
+			"region"			: "{{ user `region` }}",
+			"instance_type"		: "{{ user `instance_type` }}",
+			"source_ami"		: "{{ user `source_ami` }}",
+			"ami_name"			: "EC2-{{ user `group_code` }}-PACKER-{{ user `name` }}-AMI-{{ timestamp }}",
+			"user_data_file"	: "./packer-bootstrap.ps1",
+			"communicator"		: "winrm",
+			"winrm_username"	: "{{ user `user` }}",
+			"winrm_password"	: "{{ user `password` }}",
+			"winrm_timeout"		: "10m",
+			"subnet_id"			: "{{ user `subnet_id` }}",
+			"security_group_id"	: "{{ user `security_group_id` }}",
+			"spot_price"		: "{{ user `spot_price` }}",
+			"ami_block_device_mappings": [
+                {
+                    "device_name": "/dev/sda1",
+                    "volume_type": "gp2",
+					"volume_size": "50",
+                    "delete_on_termination": true
+                }
+            ],
+            "launch_block_device_mappings": [
+                {
+                    "device_name": "/dev/sda1",
+                    "volume_type": "gp2",
+					"volume_size": "50",
+                    "delete_on_termination": true
+                }
+            ],
+            "tags": {
+                "Name"			: "EC2-{{ user `group_code` }}-PACKER-{{ user `name` }}-AMI",
+                "Project"		: "{{ user `tag_project` }}",
+                "AMI-Type"		: "{{ user `tag_ami_type` }}",
+                "Build-Number"	: "{{ user `build_no` }}"
+            }
+		}
+	],
+	"provisioners": [		
+        {
+            "type": "powershell",
+            "scripts": [
+                "./configure-ec2config-service.ps1"
+            ]
+        }
+	]
+}
